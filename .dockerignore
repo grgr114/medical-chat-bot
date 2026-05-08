@@ -1,0 +1,15 @@
+.git
+.idea
+.DS_Store
+.env
+__pycache__
+*.pyc
+.venv
+venv
+node_modules
+pipeline/.DS_Store
+pipeline/images
+pipeline/texts
+pipeline/output/checkpoints
+pipeline/output/*.log
+pipeline/output/metrics

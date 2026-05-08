@@ -1,0 +1,27 @@
+{
+  "paths": {
+    "images": "images",
+    "texts": "texts",
+    "output_dir": "output",
+    "image_descriptions": "output/image_descriptions.jsonl",
+    "chunks": "output/chunks.jsonl",
+    "chunks_expanded": "output/chunks_expanded.jsonl",
+    "terms": "../dataset/terms.csv"
+  },
+  "sources": [
+    {
+      "id": "txt_docs",
+      "class": "pipeline.sources.txt_docs:TxtDocsSource",
+      "enabled": true,
+      "options": {}
+    },
+    {
+      "id": "markdown_notes",
+      "class": "pipeline.sources.markdown_files:MarkdownFilesSource",
+      "enabled": false,
+      "options": {
+        "glob": "markdown_import/**/*.md"
+      }
+    }
+  ]
+}

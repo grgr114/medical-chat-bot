@@ -1,0 +1,12 @@
+# Merge for NVIDIA GPU embeddings: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+# Requires NVIDIA Container Toolkit on the host.
+services:
+  app:
+    build:
+      context: .
+      args:
+        INSTALL_CUDA_TORCH: "1"
+    gpus: all
+    environment:
+      EMBEDDING_DEVICE: cuda
+

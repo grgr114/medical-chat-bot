@@ -1,0 +1,103 @@
+x-app-build: &app-build
+  context: .
+  args:
+    INSTALL_CUDA_TORCH: ${INSTALL_CUDA_TORCH:-0}
+
+services:
+  app:
+    build: *app-build
+    container_name: medical-rag-app
+    ports:
+      - "8000:8000"
+    environment:
+      CHUNKS_PATH: /app/pipeline/output/chunks.jsonl
+      QDRANT_URL: http://qdrant:6333
+      POSTGRES_DSN: postgresql://rag:${POSTGRES_PASSWORD:-rag}@postgres:5432/rag
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:1488/v1}
+      LLM_MODEL: ${LLM_MODEL:-lmstudio-community/gemma-4-e4b-it}
+      LLM_API_KEY: ${LLM_API_KEY:-lm-studio}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-jinaai/jina-embeddings-v3}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-}
+      AUTO_INDEX: ${AUTO_INDEX:-false}
+      FORCE_REINDEX_ON_START: ${FORCE_REINDEX_ON_START:-false}
+    volumes:
+      - ./pipeline/output:/app/pipeline/output:ro
+      - hf_cache:/models/huggingface
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  metrics:
+    profiles: ["metrics"]
+    build: *app-build
+    container_name: medical-rag-metrics
+    entrypoint: ["python", "-m", "rag_app.metrics"]
+    command:
+      [
+        "--questions",
+        "/app/pipeline/questions.csv",
+        "--texts",
+        "/app/pipeline/texts.csv",
+        "--chunks",
+        "/app/pipeline/output/chunks.jsonl",
+        "--output-dir",
+        "/app/pipeline/output/metrics",
+        "--profiles",
+        "dense,sparse,hybrid,full",
+      ]
+    environment:
+      CHUNKS_PATH: /app/pipeline/output/chunks.jsonl
+      QDRANT_URL: http://qdrant:6333
+      POSTGRES_DSN: postgresql://rag:${POSTGRES_PASSWORD:-rag}@postgres:5432/rag
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:1488/v1}
+      LLM_MODEL: ${LLM_MODEL:-lmstudio-community/gemma-4-e4b-it}
+      LLM_API_KEY: ${LLM_API_KEY:-lm-studio}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-jinaai/jina-embeddings-v3}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-}
+      AUTO_INDEX: "false"
+      FORCE_REINDEX_ON_START: "false"
+    volumes:
+      - ./pipeline/questions.csv:/app/pipeline/questions.csv:ro
+      - ./pipeline/texts.csv:/app/pipeline/texts.csv:ro
+      - ./pipeline/output:/app/pipeline/output
+      - hf_cache:/models/huggingface
+    depends_on:
+      qdrant:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: medical-rag-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  postgres:
+    image: postgres:16
+    container_name: medical-rag-postgres
+    environment:
+      POSTGRES_DB: rag
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d rag"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  qdrant_data:
+  postgres_data:
+  hf_cache:
