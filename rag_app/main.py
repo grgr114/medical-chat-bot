@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.auto_index:
         should_index = True
     else:
-        should_index = force or not qdrant.has_indexed_points()
+        should_index = force 
 
     if should_index:
         indexed = await run_in_threadpool(rag.build_index, force)
