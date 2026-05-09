@@ -79,11 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             force,
         )
     else:
-        logger.info(
-            "Skipping Qdrant startup indexing (%s points present). "
-            "Use FORCE_REINDEX_ON_START=true or POST /api/index to rebuild.",
-            qdrant.count(),
-        )
+        logger.info("Skipping Qdrant startup indexing.")
 
     app.state.settings = settings
     app.state.rag = rag
